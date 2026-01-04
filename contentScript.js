@@ -81,19 +81,59 @@
     return segments;
   }
 
+  // Extract HTML with bold/italic formatting preserved
+  function extractFormattedHtml(el) {
+    // Clone to avoid modifying original
+    const clone = el.cloneNode(true);
+
+    // Remove KaTeX (handled separately)
+    clone.querySelectorAll(".katex").forEach((n) => n.remove());
+
+    // Process all spans to convert inline styles to HTML tags
+    const spans = Array.from(clone.querySelectorAll("span[style]"));
+    spans.forEach((span) => {
+      const style = span.getAttribute("style") || "";
+      const isBold = style.includes("font-weight: bold");
+      const isItalic = style.includes("font-style: italic");
+
+      if (isBold || isItalic) {
+        // Get inner text content
+        const textNode = span.querySelector('[data-text="true"]');
+        if (textNode) {
+          const text = textNode.textContent;
+
+          // Build replacement HTML with escaped text
+          let html = escapeHtml(text);
+          if (isBold && isItalic) {
+            html = `<strong><em>${html}</em></strong>`;
+          } else if (isBold) {
+            html = `<strong>${html}</strong>`;
+          } else if (isItalic) {
+            html = `<em>${html}</em>`;
+          }
+
+          // Replace span with formatted HTML
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = html;
+          span.replaceWith(...tempDiv.childNodes);
+        }
+      }
+    });
+
+    return clone.innerHTML.trim();
+  }
+
   // Process a blockquote element and extract text + any math content
   function processBlockquoteElement(el) {
     const segments = [];
 
-    // Extract blockquote text (without KaTeX)
-    const clone = el.cloneNode(true);
-    clone.querySelectorAll(".katex").forEach((n) => n.remove());
-    const quoteText = (clone.innerText || "").trim();
+    // Extract blockquote HTML with formatting
+    const quoteHtml = extractFormattedHtml(el);
 
-    if (quoteText && quoteText !== "\\n" && quoteText !== "\\n\\n") {
+    if (quoteHtml && quoteHtml !== "\\n" && quoteHtml !== "\\n\\n") {
       segments.push({
         type: "blockquote",
-        text: quoteText,
+        html: quoteHtml,
       });
     }
 
@@ -205,14 +245,16 @@
         // Block with KaTeX math
         const hasKatex = el.querySelector && el.querySelector(".katex");
         if (hasKatex) {
-          // plain text in block (without math)
-          const clone = el.cloneNode(true);
-          clone.querySelectorAll(".katex").forEach((n) => n.remove());
-          let plainText = (clone.innerText || "").trim();
-          if (plainText && plainText !== "\\n" && plainText !== "\\n\\n") {
+          // formatted HTML in block (without math)
+          const formattedHtml = extractFormattedHtml(el);
+          if (
+            formattedHtml &&
+            formattedHtml !== "\\n" &&
+            formattedHtml !== "\\n\\n"
+          ) {
             segments.push({
               type: "text",
-              text: plainText,
+              html: formattedHtml,
             });
           }
 
@@ -234,13 +276,13 @@
           continue;
         }
 
-        // plain text block
-        let text = (el.innerText || "").trim();
+        // formatted text block
+        let html = extractFormattedHtml(el);
         // filter Draft-style literal "\n" filler blocks
-        if (text && text !== "\\n" && text !== "\\n\\n") {
+        if (html && html !== "\\n" && html !== "\\n\\n") {
           segments.push({
             type: "text",
-            text,
+            html,
           });
         }
 
@@ -346,15 +388,14 @@
       }
 
       if (seg.type === "blockquote") {
-        const cleaned = seg.text.replace(/\\n/g, "\n");
-        const html = escapeHtml(cleaned).replace(/\n/g, "<br>");
+        // HTML already contains formatting and escaped text
+        const html = seg.html.replace(/\n/g, "<br>");
         return `<blockquote class="article-blockquote">${html}</blockquote>`;
       }
 
       if (seg.type === "text") {
-        // convert literal "\n" inside text (if any slipped through) to real breaks
-        const cleaned = seg.text.replace(/\\n/g, "\n");
-        const html = escapeHtml(cleaned).replace(/\n/g, "<br>");
+        // HTML already contains formatting and escaped text
+        const html = seg.html.replace(/\n/g, "<br>");
         return `<p class="article-text">${html}</p>`;
       }
 
@@ -462,6 +503,16 @@
     .article-text {
       margin: 0 0 10px 0;
       font-size: 13px;
+    }
+
+    .article-text strong,
+    .article-blockquote strong {
+      font-weight: 600;
+    }
+
+    .article-text em,
+    .article-blockquote em {
+      font-style: italic;
     }
 
     .article-blockquote {
