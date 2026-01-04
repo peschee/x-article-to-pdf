@@ -50,6 +50,37 @@
     return cleaned;
   }
 
+  // Process a heading element (H1-H5) and extract text + any math content
+  function processHeadingElement(el, level) {
+    const segments = [];
+
+    // Extract heading text (without KaTeX)
+    const clone = el.cloneNode(true);
+    const katexInHeading = clone.querySelectorAll(".katex");
+    katexInHeading.forEach((n) => n.remove());
+    const headingText = (clone.innerText || "").trim();
+
+    if (headingText) {
+      segments.push({
+        type: "heading",
+        level: level,
+        text: headingText,
+      });
+    }
+
+    // Extract inline math from heading
+    const katexSpans = el.querySelectorAll(".katex");
+    katexSpans.forEach((span) => {
+      segments.push({
+        type: "mathHtml",
+        html: span.outerHTML,
+        display: "inline",
+      });
+    });
+
+    return segments;
+  }
+
   // ---------- ARTICLE MODE (twitterArticleReadView) ----------
 
   function extractArticleSegments(article) {
@@ -121,59 +152,12 @@
 
         const tag = el.tagName.toUpperCase();
 
-        // Heading (h1 inside article)
-        if (tag === "H1") {
-          const clone = el.cloneNode(true);
-          const katexInHeading = clone.querySelectorAll(".katex");
-          katexInHeading.forEach((n) => n.remove());
-          const headingText = (clone.innerText || "").trim();
-
-          if (headingText) {
-            segments.push({
-              type: "heading",
-              level: 1,
-              text: headingText,
-            });
-          }
-
-          // math inside heading
-          const katexSpans = el.querySelectorAll(".katex");
-          katexSpans.forEach((span) => {
-            segments.push({
-              type: "mathHtml",
-              html: span.outerHTML,
-              display: "inline",
-            });
-          });
-
-          continue;
-        }
-
-        // Heading (h2 inside article)
-        if (tag === "H2") {
-          const clone = el.cloneNode(true);
-          const katexInHeading = clone.querySelectorAll(".katex");
-          katexInHeading.forEach((n) => n.remove());
-          const headingText = (clone.innerText || "").trim();
-
-          if (headingText) {
-            segments.push({
-              type: "heading",
-              level: 2,
-              text: headingText,
-            });
-          }
-
-          // math inside heading
-          const katexSpans = el.querySelectorAll(".katex");
-          katexSpans.forEach((span) => {
-            segments.push({
-              type: "mathHtml",
-              html: span.outerHTML,
-              display: "inline",
-            });
-          });
-
+        // Headings (H1-H5 inside article)
+        const headingMatch = tag.match(/^H([1-5])$/);
+        if (headingMatch) {
+          const level = parseInt(headingMatch[1], 10);
+          const headingSegments = processHeadingElement(el, level);
+          segments.push(...headingSegments);
           continue;
         }
 
@@ -316,7 +300,8 @@
   const bodyContent = segments
     .map((seg) => {
       if (seg.type === "heading") {
-        return `<h2 class="article-heading">${escapeHtml(seg.text)}</h2>`;
+        const tag = `h${seg.level}`;
+        return `<${tag} class="article-heading">${escapeHtml(seg.text)}</${tag}>`;
       }
 
       if (seg.type === "text") {
@@ -397,11 +382,34 @@
     }
 
     .article-heading {
-      font-size: 20px;
-      margin: 18px 0 8px 0;
       font-weight: 600;
       border-bottom: 1px solid #ddd;
       padding-bottom: 4px;
+    }
+
+    h1.article-heading {
+      font-size: 22px;
+      margin: 20px 0 10px 0;
+    }
+
+    h2.article-heading {
+      font-size: 20px;
+      margin: 18px 0 8px 0;
+    }
+
+    h3.article-heading {
+      font-size: 18px;
+      margin: 16px 0 8px 0;
+    }
+
+    h4.article-heading {
+      font-size: 16px;
+      margin: 14px 0 6px 0;
+    }
+
+    h5.article-heading {
+      font-size: 14px;
+      margin: 12px 0 6px 0;
     }
 
     .article-text {
