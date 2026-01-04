@@ -81,6 +81,40 @@
     return segments;
   }
 
+  // Process a blockquote element and extract text + any math content
+  function processBlockquoteElement(el) {
+    const segments = [];
+
+    // Extract blockquote text (without KaTeX)
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll(".katex").forEach((n) => n.remove());
+    const quoteText = (clone.innerText || "").trim();
+
+    if (quoteText && quoteText !== "\\n" && quoteText !== "\\n\\n") {
+      segments.push({
+        type: "blockquote",
+        text: quoteText,
+      });
+    }
+
+    // Extract any KaTeX math in blockquote
+    const katexSpans = el.querySelectorAll(".katex");
+    katexSpans.forEach((span) => {
+      const mathNode = span.querySelector("math");
+      const display =
+        mathNode && mathNode.getAttribute("display") === "block"
+          ? "block"
+          : "inline";
+      segments.push({
+        type: "mathHtml",
+        html: span.outerHTML,
+        display,
+      });
+    });
+
+    return segments;
+  }
+
   // ---------- ARTICLE MODE (twitterArticleReadView) ----------
 
   function extractArticleSegments(article) {
@@ -145,7 +179,7 @@
 
       const dataBlock = el.getAttribute("data-block");
 
-      // ----- Block-level content (headings, text, math) -----
+      // ----- Block-level content (headings, blockquotes, text, math) -----
       if (dataBlock === "true") {
         if (seenBlocks.has(el)) continue;
         seenBlocks.add(el);
@@ -158,6 +192,13 @@
           const level = parseInt(headingMatch[1], 10);
           const headingSegments = processHeadingElement(el, level);
           segments.push(...headingSegments);
+          continue;
+        }
+
+        // Blockquotes
+        if (tag === "BLOCKQUOTE") {
+          const blockquoteSegments = processBlockquoteElement(el);
+          segments.push(...blockquoteSegments);
           continue;
         }
 
@@ -304,6 +345,12 @@
         return `<${tag} class="article-heading">${escapeHtml(seg.text)}</${tag}>`;
       }
 
+      if (seg.type === "blockquote") {
+        const cleaned = seg.text.replace(/\\n/g, "\n");
+        const html = escapeHtml(cleaned).replace(/\n/g, "<br>");
+        return `<blockquote class="article-blockquote">${html}</blockquote>`;
+      }
+
       if (seg.type === "text") {
         // convert literal "\n" inside text (if any slipped through) to real breaks
         const cleaned = seg.text.replace(/\\n/g, "\n");
@@ -415,6 +462,15 @@
     .article-text {
       margin: 0 0 10px 0;
       font-size: 13px;
+    }
+
+    .article-blockquote {
+      margin: 12px 0 16px 0;
+      padding: 10px 0 10px 16px;
+      border-left: 4px solid #536471;
+      background: #f7f9f9;
+      font-style: italic;
+      color: #0f1419;
     }
 
     .code-block {
