@@ -451,21 +451,30 @@
     }
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 20px;
-      line-height: 1.5;
-      color: #000;
+      margin: 0;
+      padding: 40px 20px;
+      line-height: 1.7;
+      color: #1a1a1a;
       background: #fff;
+      font-size: 16px;
+    }
+
+    .content-wrapper {
+      max-width: 680px;
+      margin: 0 auto;
     }
 
     .doc-title {
-      font-size: 24px;
-      margin: 0 0 4px 0;
+      font-size: 32px;
+      margin: 0 0 8px 0;
+      line-height: 1.2;
+      font-weight: 700;
     }
 
     .meta {
-      font-size: 12px;
-      color: #555;
-      margin-bottom: 16px;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 32px;
       word-break: break-all;
     }
 
@@ -476,33 +485,39 @@
     }
 
     h1.article-heading {
-      font-size: 22px;
-      margin: 20px 0 10px 0;
+      font-size: 28px;
+      margin: 32px 0 16px 0;
+      line-height: 1.3;
     }
 
     h2.article-heading {
-      font-size: 20px;
-      margin: 18px 0 8px 0;
+      font-size: 24px;
+      margin: 28px 0 14px 0;
+      line-height: 1.3;
     }
 
     h3.article-heading {
-      font-size: 18px;
-      margin: 16px 0 8px 0;
+      font-size: 20px;
+      margin: 24px 0 12px 0;
+      line-height: 1.3;
     }
 
     h4.article-heading {
       font-size: 16px;
-      margin: 14px 0 6px 0;
+      margin: 20px 0 10px 0;
+      line-height: 1.3;
     }
 
     h5.article-heading {
       font-size: 14px;
-      margin: 12px 0 6px 0;
+      margin: 16px 0 8px 0;
+      line-height: 1.3;
     }
 
     .article-text {
-      margin: 0 0 10px 0;
-      font-size: 13px;
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      line-height: 1.7;
     }
 
     .article-text strong,
@@ -516,20 +531,23 @@
     }
 
     .article-blockquote {
-      margin: 12px 0 16px 0;
-      padding: 10px 0 10px 16px;
+      margin: 24px 0;
+      padding: 16px 0 16px 20px;
       border-left: 4px solid #536471;
       background: #f7f9f9;
       font-style: italic;
+      font-size: 16px;
+      line-height: 1.7;
       color: #0f1419;
     }
 
     .code-block {
-      margin: 12px 0 16px 0;
+      margin: 24px 0;
       border-radius: 8px;
       background: #f7f9f9;
       border: 1px solid #e1e4e8;
       overflow: hidden;
+      font-size: 14px;
     }
     .code-block-header {
       display: flex;
@@ -591,11 +609,15 @@
     }
 
     @page {
-      margin: 15mm;
+      margin: 20mm;
     }
     @media print {
       body {
         margin: 0;
+        padding: 0;
+      }
+      .content-wrapper {
+        max-width: 100%;
       }
       a {
         text-decoration: none;
@@ -605,11 +627,13 @@
   </style>
 </head>
 <body>
-  <h1 class="doc-title">${escapeHtml(title)}</h1>
-  <div class="meta">
-    Source: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a>
+  <div class="content-wrapper">
+    <h1 class="doc-title">${escapeHtml(title)}</h1>
+    <div class="meta">
+      Source: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a>
+    </div>
+    ${bodyContent}
   </div>
-  ${bodyContent}
   <script>
     window.onload = function () {
       window.print();
