@@ -1,4 +1,3 @@
-
 (function () {
   function escapeHtml(str) {
     return String(str)
@@ -8,7 +7,6 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
-
 
   function normalizeTextForDedup(str) {
     return String(str || "")
@@ -32,7 +30,9 @@
         const lang = next.language || "";
 
         const codeNorm = normalizeTextForDedup(codeText);
-        const langPlusCodeNewline = normalizeTextForDedup(lang + "\n" + codeText);
+        const langPlusCodeNewline = normalizeTextForDedup(
+          lang + "\n" + codeText,
+        );
         const langPlusCodeSpace = normalizeTextForDedup(lang + " " + codeText);
 
         if (
@@ -53,7 +53,9 @@
   // ---------- ARTICLE MODE (twitterArticleReadView) ----------
 
   function extractArticleSegments(article) {
-    const readView = article.querySelector('[data-testid="twitterArticleReadView"]');
+    const readView = article.querySelector(
+      '[data-testid="twitterArticleReadView"]',
+    );
     if (!readView) return null;
 
     const segments = [];
@@ -63,7 +65,7 @@
     const walker = document.createTreeWalker(
       readView,
       NodeFilter.SHOW_ELEMENT,
-      null
+      null,
     );
 
     while (walker.nextNode()) {
@@ -103,7 +105,7 @@
           segments.push({
             type: "code",
             language,
-            text: codeText
+            text: codeText,
           });
         }
 
@@ -130,7 +132,7 @@
             segments.push({
               type: "heading",
               level: 1,
-              text: headingText
+              text: headingText,
             });
           }
 
@@ -140,7 +142,35 @@
             segments.push({
               type: "mathHtml",
               html: span.outerHTML,
-              display: "inline"
+              display: "inline",
+            });
+          });
+
+          continue;
+        }
+
+        // Heading (h2 inside article)
+        if (tag === "H2") {
+          const clone = el.cloneNode(true);
+          const katexInHeading = clone.querySelectorAll(".katex");
+          katexInHeading.forEach((n) => n.remove());
+          const headingText = (clone.innerText || "").trim();
+
+          if (headingText) {
+            segments.push({
+              type: "heading",
+              level: 2,
+              text: headingText,
+            });
+          }
+
+          // math inside heading
+          const katexSpans = el.querySelectorAll(".katex");
+          katexSpans.forEach((span) => {
+            segments.push({
+              type: "mathHtml",
+              html: span.outerHTML,
+              display: "inline",
             });
           });
 
@@ -157,7 +187,7 @@
           if (plainText && plainText !== "\\n" && plainText !== "\\n\\n") {
             segments.push({
               type: "text",
-              text: plainText
+              text: plainText,
             });
           }
 
@@ -172,7 +202,7 @@
             segments.push({
               type: "mathHtml",
               html: span.outerHTML,
-              display
+              display,
             });
           });
 
@@ -185,7 +215,7 @@
         if (text && text !== "\\n" && text !== "\\n\\n") {
           segments.push({
             type: "text",
-            text
+            text,
           });
         }
 
@@ -199,7 +229,7 @@
           segments.push({
             type: "image",
             src: img.src,
-            alt: img.alt || ""
+            alt: img.alt || "",
           });
         }
       }
@@ -219,7 +249,7 @@
 
     articles.forEach((art, idx) => {
       const textBlocks = Array.from(
-        art.querySelectorAll('div[data-testid="tweetText"]')
+        art.querySelectorAll('div[data-testid="tweetText"]'),
       );
 
       let text = "";
@@ -235,18 +265,18 @@
       if (text && text !== "\\n" && text !== "\\n\\n") {
         segments.push({
           type: "text",
-          text
+          text,
         });
       }
 
       const imgs = Array.from(
-        art.querySelectorAll('img[src*="pbs.twimg.com/media/"]')
+        art.querySelectorAll('img[src*="pbs.twimg.com/media/"]'),
       );
       imgs.forEach((img) => {
         segments.push({
           type: "image",
           src: img.src,
-          alt: img.alt || ""
+          alt: img.alt || "",
         });
       });
 
