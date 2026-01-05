@@ -634,15 +634,30 @@
     </div>
     ${bodyContent}
   </div>
-  <script>
-    window.onload = function () {
-      window.print();
-    };
-  </script>
 </body>
 </html>`;
 
-  const blob = new Blob([html], { type: "text/html" });
-  const blobUrl = URL.createObjectURL(blob);
-  window.open(blobUrl, "_blank");
+  // Get mode from background script and execute accordingly
+  chrome.runtime.sendMessage({ action: "getMode" }, (response) => {
+    if (response.mode === "download") {
+      // Generate a safe filename from the title
+      const safeTitle = title
+        .replace(/[^a-zA-Z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .substring(0, 100);
+      const filename = (safeTitle || "x-article") + ".html";
+
+      // Send HTML to background script for download (static HTML, no script)
+      chrome.runtime.sendMessage({
+        action: "downloadHtml",
+        html: html,
+        filename: filename,
+      });
+    } else {
+      // Open in browser as blob URL
+      const blob = new Blob([html], { type: "text/html" });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    }
+  });
 })();

@@ -1,8 +1,32 @@
-chrome.action.onClicked.addListener((tab) => {
-  if (!tab.id) return;
+// Store the selected mode for the content script to read
+let currentMode = "browser";
 
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ["contentScript.js"]
-  });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Handle request from popup to execute script
+  if (message.action === "executeScript") {
+    currentMode = message.mode;
+    chrome.scripting.executeScript({
+      target: { tabId: message.tabId },
+      files: ["contentScript.js"],
+    });
+    return;
+  }
+
+  // Handle request from content script to get mode
+  if (message.action === "getMode") {
+    sendResponse({ mode: currentMode });
+    return;
+  }
+
+  // Handle download request from content script
+  if (message.action === "downloadHtml") {
+    const dataUrl =
+      "data:text/html;charset=utf-8," + encodeURIComponent(message.html);
+
+    chrome.downloads.download({
+      url: dataUrl,
+      filename: message.filename,
+      saveAs: true,
+    });
+  }
 });
