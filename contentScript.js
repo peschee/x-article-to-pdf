@@ -637,6 +637,10 @@
 </body>
 </html>`;
 
+  // Create blob URL upfront (before async call to avoid popup blocking)
+  const blob = new Blob([html], { type: "text/html" });
+  const blobUrl = URL.createObjectURL(blob);
+
   // Get mode from background script and execute accordingly
   chrome.runtime.sendMessage({ action: "getMode" }, (response) => {
     if (response.mode === "download") {
@@ -653,10 +657,9 @@
         html: html,
         filename: filename,
       });
+      URL.revokeObjectURL(blobUrl);
     } else {
-      // Open in browser as blob URL
-      const blob = new Blob([html], { type: "text/html" });
-      const blobUrl = URL.createObjectURL(blob);
+      // Open blob URL in new tab
       window.open(blobUrl, "_blank");
     }
   });
