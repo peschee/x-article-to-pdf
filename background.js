@@ -5,17 +5,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Handle request from popup to execute script
   if (message.action === "executeScript") {
     currentMode = message.mode;
-    chrome.scripting.executeScript({
-      target: { tabId: message.tabId },
-      files: ["contentScript.js"],
+    chrome.storage.session.set({ currentMode: message.mode }, () => {
+      chrome.scripting.executeScript({
+        target: { tabId: message.tabId },
+        files: ["contentScript.js"],
+      });
     });
     return;
   }
 
   // Handle request from content script to get mode
   if (message.action === "getMode") {
-    sendResponse({ mode: currentMode });
-    return;
+    chrome.storage.session.get("currentMode", (result) => {
+      sendResponse({ mode: result.currentMode || currentMode });
+    });
+    return true;
   }
 
   // Handle download request from content script
